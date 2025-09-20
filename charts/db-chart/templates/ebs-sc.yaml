@@ -1,0 +1,17 @@
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: {{ .Values.StorageClass.name }}
+provisioner: ebs.csi.aws.com
+volumeBindingMode: WaitForFirstConsumer
+parameters:
+  csi.storage.k8s.io/fstype: xfs
+  type: {{ .Values.StorageClass.type | default "gp3" }}
+  iopsPerGB: {{ .Values.StorageClass.iopsPerGB | default "10" }}
+  encrypted: {{ .Values.StorageClass.encrypted | default "true" }}
+allowedTopologies:
+- matchLabelExpressions:
+  - key: topology.ebs.csi.aws.com/zone
+    values:
+    - {{ .Values.StorageClass.zone1 | default "us-east-1a" }}
+    - {{ .Values.StorageClass.zone2 | default "us-east-1b" }}

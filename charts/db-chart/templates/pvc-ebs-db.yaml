@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ .Values.persistentVolumeClaim.name }} # Needed to change by Helm values
+  namespace: {{ .Values.namespace }} # Needed to change by Helm values
+spec:
+  accessModes:
+   - {{ .Values.persistentVolumeClaim.accessModes }} # Needed to change by Helm values
+  volumeMode: Filesystem
+  resources:
+    requests:
+      storage: {{ .Values.persistentVolumeClaim.storage }} # Needed to change by Helm values
+  storageClassName: {{ .Values.persistentVolumeClaim.storageClassName }} # Reference to the StorageClass for EBS

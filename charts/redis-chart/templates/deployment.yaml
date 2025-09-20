@@ -1,0 +1,92 @@
+# This file contains the Kubernetes Deployment and Service for the redis application.
+# It is configured to deploy desire set of replica of the application and expose it via a Service.
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ .Values.namespace }} # Needed to change by Helm values
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+# Metadata for the Deployment object
+metadata:
+  name: {{ .Values.deployment_name | default "redis-deployment" }} # Name of the deployment
+  namespace: {{ .Values.namespace }} # Needed to change by Helm values
+  labels:
+    app: redis-app
+# Specification of the desired behavior of the Deployment
+spec:
+  replicas: {{ .Values.replicaCount }} # Needed to change by Helm values
+  # Label selector for pods managed by this deployment
+  selector: 
+    matchLabels:
+      app: redis-app
+  # Template for the pods managed by this deployment
+  template:
+    metadata:
+      # Labels to be applied to the pods
+      labels:
+        app: redis-app
+    # Specification of the pod's contents
+    spec:
+    # Affinity rules to spread pods across zones
+      topologySpreadConstraints:
+        - maxSkew: {{ .Values.topologySpreadConstraints.maxSkew }} # Needed to change by Helm values
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app: redis-app
+      containers:
+      - name: redis-app-container
+        image: {{ .Values.image.repository }}:{{ .Values.image.tag }} # Needed to change by Helm values
+        # to always pull the latest image, useful during development
+        imagePullPolicy: {{ .Values.image.pullPolicy }} # Needed to change by Helm values
+        ports:
+        - containerPort: 6379 # The port that the container listens on
+        resources:
+          limits:
+            memory: {{ .Values.resources.limits.memory }} # Needed to change by Helm values
+            cpu: {{ .Values.resources.limits.cpu }} # Needed to change by Helm values
+          requests:
+            memory: {{ .Values.resources.requests.memory }} # Needed to change by Helm values
+            cpu: {{ .Values.resources.requests.cpu }} # Needed to change by Helm values
+        readinessProbe:
+          tcpSocket:
+            port: 6379
+          initialDelaySeconds: 15
+          periodSeconds: 10
+        livenessProbe:
+          tcpSocket:
+            port: 6379
+          initialDelaySeconds: 15
+          periodSeconds: 10 
+        volumeMounts:
+        - name: redis-data
+          mountPath: /data # Mount path inside the container
+      # Define a volume for Redis data persistence
+      # This is ephemeral and will be lost if the pod is deleted
+      volumes:
+      - name: redis-data
+        emptyDir: {}
+
+---
+
+# This file contains the Kubernetes Service for the redis application.
+# It is configured to expose the Deployment via a ClusterIP service.
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: {{ .Values.namespace }} # Needed to change by Helm values
+  name: {{ .Values.service.name | default "redis-service" }} # Name of the service
+spec:
+  selector:
+    # Selects pods with the label "app: redis-app"
+    app: redis-app
+  ports:
+    - protocol: TCP
+      port: {{ .Values.service.port }} # The port that the service will expose
+      targetPort: 6379 # The port on the pod that the service will forward to
+  type: {{ .Values.service.type }} # The type of service

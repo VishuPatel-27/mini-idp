@@ -1,0 +1,106 @@
+# This file contains the Kubernetes Deployment and Service for the postgres application.
+# It is configured to deploy desire set of replica of the application and expose it via a Service.
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ .Values.namespace }} # Needed to change by Helm values
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+# Metadata for the Deployment object
+metadata:
+  name: postgres-deployment
+  namespace: {{ .Values.namespace }} # Needed to change by Helm values
+  labels:
+    app: postgres-app
+# Specification of the desired behavior of the Deployment
+spec:
+  replicas: {{ .Values.replicaCount }} # Needed to change by Helm values
+  # Label selector for pods managed by this deployment
+  selector: 
+    matchLabels:
+      app: postgres-app
+  # Template for the pods managed by this deployment
+  template:
+    metadata:
+      # Labels to be applied to the pods
+      labels:
+        app: postgres-app
+    # Specification of the pod's contents
+    # Affinity rules to spread pods across zones
+    spec:
+      topologySpreadConstraints:
+        - maxSkew: {{ .Values.maxSkew }} # Needed to change by Helm values
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app: postgres-app
+      containers:
+      - name: postgres-app-container
+        image: {{ .Values.image.repository }}:{{ .Values.image.tag }} 
+        envFrom:
+        - secretRef:
+            name: postgres-secrets  # Reference to a Secret containing environment variables
+        imagePullPolicy: {{ .Values.image.pullPolicy }} # Needed to change by Helm values
+        ports:
+        - containerPort: 5432 # The port that the container listens on
+        resources:
+          limits:
+            memory: {{ .Values.resources.limits.memory }} # Needed to change by Helm values
+            cpu: {{ .Values.resources.limits.cpu }} # Needed to change by Helm values
+          requests:
+            memory: {{ .Values.resources.requests.memory }} # Needed to change by Helm values
+            cpu: {{ .Values.resources.requests.cpu }} # Needed to change by Helm values
+        readinessProbe:
+          tcpSocket:
+            port: 5432
+          initialDelaySeconds: 15
+          periodSeconds: 10
+        livenessProbe:
+          tcpSocket:
+            port: 5432
+          initialDelaySeconds: 15
+          periodSeconds: 10
+        volumeMounts:
+        - name: postgres-db-storage
+          mountPath: /var/lib/postgresql/data # Mount path inside the container
+      volumes:
+      - name: postgres-db-storage
+        persistentVolumeClaim:
+          claimName: pvc-ebs-db # Reference to the PersistentVolumeClaim for storage
+
+
+---
+
+# This file contains the Kubernetes Service for the postgres application.
+# It is configured to expose the Deployment via a ClusterIP service.
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-service
+  namespace: {{ .Values.namespace }} # Needed to change by Helm values
+spec:
+  selector:
+    # Selects pods with the label "app: postgres-app"
+    app: postgres-app
+  ports:
+    - protocol: TCP
+      port: {{ .Values.service.port }} # The port that the service will expose
+      targetPort: 5432 # The port on the pod that the service will forward to
+  type: {{ .Values.service.type }} # The type of service
+
+---
+
+apiVersion: v1
+kind: Secret
+type: Opaque
+metadata:
+  name: postgres-secrets # Reference to a Secret containing environment variables
+  namespace: {{ .Values.namespace }} # Needed to change by Helm values
+data:
+  POSTGRES_USER: cG9zdGdyZXM=
+  POSTGRES_PASSWORD: cG9zdGdyZXM=

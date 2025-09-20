@@ -1,0 +1,116 @@
+# This file contains the Kubernetes Deployment and Service for the result application.
+# It is configured to deploy desire set of replica of the application and expose it via a Service.
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ .Values.namespace }}
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+# Metadata for the Deployment object
+metadata:
+  name: result-deployment
+  namespace: {{ .Values.namespace }} # Needed to change by Helm values
+  labels:
+    app: result-app
+# Specification of the desired behavior of the Deployment
+spec:
+  replicas: {{ .Values.replicaCount }} # Needed to change by Helm values
+  # Label selector for pods managed by this deployment
+  selector: 
+    matchLabels:
+      app: result-app
+  # Template for the pods managed by this deployment
+  template:
+    metadata:
+      # Labels to be applied to the pods
+      labels:
+        app: result-app
+    # Specification of the pod's contents
+    spec:
+      # Affinity rules to spread pods across zones
+      topologySpreadConstraints:
+        - maxSkew: {{ .Values.topologySpreadConstraints.maxSkew }}
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app: result-app
+      containers:
+      - name: result-app-container
+        image: {{ .Values.image.repository }}:{{ .Values.image.tag}} # Needed to change by Helm values
+        # imagePullSecrets:
+        # - name: aws-ecr-secret
+        # to always pull the latest image, useful during development
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        ports:
+        - containerPort: 80 # The port that the container listens on
+        readinessProbe:
+          tcpSocket:
+            port: 80
+          initialDelaySeconds: 15
+          periodSeconds: 10
+        livenessProbe:
+          tcpSocket:
+            port: 80
+          initialDelaySeconds: 15
+          periodSeconds: 10
+        envFrom: # Load environment variables from a secret
+        - configMapRef:
+            name: {{ .Values.configMap.name }} # Reference to a ConfigMap named "result-app-configmap"
+        - secretRef:
+            name: result-secrets # Needed to change by Helm values
+        resources:
+          limits:
+            memory: {{ .Values.resources.limits.memory }}
+            cpu: {{ .Values.resources.limits.memory }}
+          requests:
+            memory: {{ .Values.resources.requests.memory }}
+            cpu: {{ .Values.resources.requests.memory }}
+
+
+---
+
+# This file contains the Kubernetes Service for the result application.
+# It is configured to expose the Deployment via a ClusterIP service.
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.service.name }}
+  namespace: {{ .Values.namespace }} # Needed to change by Helm values
+spec:
+  selector:
+    # Selects pods with the label "app: result-app"
+    app: result-app
+  ports:
+    - protocol: TCP
+      port: {{ .Values.service.port }} # The port that the service will expose
+      targetPort: 80 # The port on the pod that the service will forward to
+  type: {{ .Values.service.type }} # The type of service
+
+---
+
+apiVersion: v1
+kind: Secret
+type: Opaque
+metadata:
+  name: result-secrets
+  namespace: {{ .Values.namespace }}
+data:
+  POSTGRES_DBNAME: cG9zdGdyZXM=
+  POSTGRES_USER: cG9zdGdyZXM=
+  POSTGRES_PASSWORD: cG9zdGdyZXM=
+
+---
+
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: result-app-configmap
+  namespace: {{ .Values.namespace }} 
+data:
+  PGSQL_HOST_NAME: "{{ .Values.configMap.data.PGSQL_HOST_NAME | default "postgres-service.db-ns" }}"

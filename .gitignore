@@ -1,0 +1,10 @@
+*.pyc
+project.lock.json
+bin/
+obj/
+.vs/
+.vscode/
+node_modules/
+**/.env
+**/k8s-specifications/
+**.txt
