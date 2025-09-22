@@ -134,6 +134,7 @@ workflows:
     jobs:
       - path-filtering/filter:
           name: check-paths
+          config-path: .circleci/vote-config.yml
           mapping: |
             apps/vote/.* run-vote true
             ^\.circleci/vote-config\.yaml$ run-vote true
