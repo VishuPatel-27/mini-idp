@@ -1,5 +1,6 @@
 version: 2.1
 
+setup: true
 parameters:
   run-vote:
     type: boolean
@@ -13,7 +14,7 @@ parameters:
 # that simplifies and standardizes CI/CD pipelines
 orbs:
   docker: circleci/docker@3.0.1
-  slack: circleci/slack@4.9.3
+  slack: circleci/slack@6.0.0
   path-filtering: circleci/path-filtering@2.0.4
 
 jobs:
