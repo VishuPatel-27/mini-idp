@@ -2,7 +2,7 @@ version: 2.1
 
 setup: true
 parameters:
-  run-vote:
+  run-vote-app-job:
     type: boolean
     default: false
   workingdir:
@@ -130,16 +130,8 @@ jobs:
           template: basic_success_1
 
 workflows:
-  setup:
-    jobs:
-      - path-filtering/filter:
-          name: check-paths
-          config-path: .circleci/vote-config.yml
-          mapping: |
-            apps/vote/.* run-vote true
-            ^\.circleci/vote-config\.yaml$ run-vote true
   vote-app-Workflow:
-    when: << pipeline.parameters.run-vote >>
+    when: << pipeline.parameters.run-vote-app-job >>
     jobs:
       - checkout_and_test:
           filters:
