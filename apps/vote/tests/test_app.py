@@ -3,8 +3,6 @@ import json
 from unittest.mock import patch, MagicMock
 from app import app, option_a, option_b
 
-
-# This is unit test file for main py file
 @pytest.fixture
 def client():
     app.config["TESTING"] = True
