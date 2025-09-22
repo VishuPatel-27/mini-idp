@@ -1,16 +1,20 @@
 version: 2.1
 
 parameters:
+  run-vote:
+    type: boolean
+    default: false
   workingdir:
     type: string
     # default working directory is mini-idp/apps/vote/
-    default: "../"
+    default: "./apps/vote/"
     
 # Orbs is a shareable, reusable package of configuration elements (like jobs, commands, and executors) 
 # that simplifies and standardizes CI/CD pipelines
 orbs:
   docker: circleci/docker@3.0.1
   slack: circleci/slack@4.9.3
+  path-filtering: circleci/path-filtering@2.0.4
 
 jobs:
 
@@ -120,17 +124,35 @@ jobs:
     docker:
       - image: cimg/base:current
     steps: 
-      - run:
-         name: Will setup later
-         command: |
-            echo "hello world"
+      - slack/notify:
+          event: pass
+          template: basic_success_1
+
 workflows:
-  vote-app-Workflow:
+  setup:
     jobs:
-      - checkout_and_test
+      - path-filtering/filter:
+          name: check-paths
+          mapping: |
+            apps/vote/.* run-vote true
+            ^\.circleci/vote-config\.yaml$ run-vote true
+  vote-app-Workflow:
+    when: << pipeline.parameters.run-vote >>
+    jobs:
+      - checkout_and_test:
+          filters:
+            branches:
+              only: feature/implementation-of-application   # runs on all feature/* branches
       - build_and_push:
+          filters:
+            branches:
+              only: feature/implementation-of-application
           requires:
             - checkout_and_test
       - notify_and_PR_request:
+          context: slack-secrets
+          filters:
+            branches:
+              only: feature/implementation-of-application
           requires:
             - build_and_push
