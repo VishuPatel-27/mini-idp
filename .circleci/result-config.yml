@@ -2,13 +2,13 @@ version: 2.1
 
 setup: true
 parameters:
-  run-vote-app-job:
+  run-result-app-job:
     type: boolean
     default: false
   workingdir:
     type: string
-    # default working directory is mini-idp/apps/vote/
-    default: "./apps/vote/"
+    # default working directory is mini-idp/apps/result/
+    default: "./apps/result/"
     
 # Orbs is a shareable, reusable package of configuration elements (like jobs, commands, and executors) 
 # that simplifies and standardizes CI/CD pipelines
@@ -24,7 +24,7 @@ jobs:
   checkout_and_test:
 
     docker:
-      - image: cimg/python:3.13.7
+      - image: cimg/node:20.19
     
     steps:
 
@@ -33,34 +33,23 @@ jobs:
         
         # Restore pip chache
       - restore_cache:
-          name: Restoring cache of vote application if its exist
+          name: Restoring cache of result application if its exist
           key: 
-            - vote-app-{{ checksum "requirements.txt" }}
+            - result-app-{{ checksum "package-lock.json" }}
      
-        # Install dependencies
+        # install dependencies
       - run:
-          name: Installing required dependencies
-          command: pip install -r ./requirements.txt
+          name: Installing dependencies
+          command: |
+            npm install
         
         # saving cache for better performance
       - save_cache: 
-          name: saving cache of vote application dependencies
-          key: vote-app-{{ checksum "requirements.txt" }}
-          paths: ~/.cache/pip
+          name: saving cache of result application dependencies
+          key: result-app-{{ checksum "package-lock.json" }}
+          paths: ~/project/node_modules
 
-        # Running unit test     
-      - run: 
-          name: Running unit test 
-          command: |
-           mkdir -p test-results
-           pytest -v --junitxml=test-results/junit.xml
-      
-        # upload and store test results for a build
-      - store_test_results: 
-          path: test-results
-      
-      - store_artifacts:
-          path: test-results
+        # Will perform unit test here
 
   build_and_push:
     
@@ -80,14 +69,14 @@ jobs:
       - run:
           name: Building docker image
           command: |
-            docker build -t imv27/vote-app:${$CIRCLE_BUILD_NUM} .
+            docker build -t imv27/result-app:${$CIRCLE_BUILD_NUM} .
       
       # Running smoke test on docker image
       - run: 
           name: Smoke testing on docker image
           command: |
             mkdir -p smoke-test-results
-            docker run -d -p 80:80 --name vote-smoke-test imv27/vote-app:${$CIRCLE_BUILD_NUM}
+            docker run -d -p 80:80 --name result-smoke-test imv27/result-app:${$CIRCLE_BUILD_NUM}
       
       # Varifying smoke result
       - run:
@@ -107,8 +96,8 @@ jobs:
       - run: 
          name: Removing docker containers
          command: |
-            docker stop vote-smoke-test
-            docker rm vote-smoke-test
+            docker stop result-smoke-test
+            docker rm result-smoke-test
       
       # upload and store test results for a build
       - store_test_results: 
@@ -117,7 +106,7 @@ jobs:
       - run: 
          name: Pushing docker image to ECR repo
          command: |
-            docker push imv27/vote-app:${$CIRCLE_BUILD_NUM}
+            docker push imv27/result-app:${$CIRCLE_BUILD_NUM}
 
   # Sending slack notification of results
   # create a PR request on main branch
@@ -130,8 +119,8 @@ jobs:
           template: basic_success_1
 
 workflows:
-  vote-app-Workflow:
-    when: << pipeline.parameters.run-vote-app-job >>
+  result-app-Workflow:
+    when: << pipeline.parameters.run-result-app-job >>
     jobs:
       - checkout_and_test:
           filters:

@@ -8,7 +8,7 @@ parameters:
   workingdir:
     type: string
     # default working directory is mini-idp/apps/vote/
-    default: "./apps/vote/"
+    default: "./apps/worker/"
     
 # Orbs is a shareable, reusable package of configuration elements (like jobs, commands, and executors) 
 # that simplifies and standardizes CI/CD pipelines
@@ -27,11 +27,10 @@ jobs:
       - image: cimg/python:3.13.7
     
     steps:
-
-        # checkout source code
-      - checkout
-        
+     
+      - checkout # checkout source code
         # Restore pip chache
+     
       - restore_cache:
           name: Restoring cache of vote application if its exist
           key: 
