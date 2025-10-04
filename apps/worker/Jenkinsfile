@@ -1,7 +1,6 @@
 pipeline {
     agent {
         docker {
-            label 'docker-agent' // Ensure this label matches an agent with Docker installed
             image: 'ubuntu:latest' // Use the official Ubuntu image from Docker Hub
             reuseNode true // Reuse the same container for all stages
         }
