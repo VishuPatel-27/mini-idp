@@ -10,14 +10,18 @@ pipeline {
                 }
             }
             steps {
-                sh 'docker build -t imv27/vote-app:${env.BUILD_TAG} apps/vote/Dockerfile' // Build Docker image using the Dockerfile in the repo
+                sh '''
+                #!/bin/bash -xe
+                docker build -t imv27/vote-app:${env.BUILD_TAG} apps/vote/Dockerfile
+                ''' // Build Docker image using the Dockerfile in the repo
             }
         }
         stage('Push to ECR') {
             steps {
                 echo 'Pushing to ECR ...'
                 sh '''
-                    docker push imv27/vote-app:${env.BUILD_TAG}
+                #!/bin/bash -xe
+                docker push imv27/vote-app:${env.BUILD_TAG}
                 '''
             }
         }        
