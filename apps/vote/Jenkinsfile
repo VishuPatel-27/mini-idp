@@ -1,9 +1,10 @@
 pipeline {
     agent {
-        docker {
-            image 'ubuntu:latest' // Use the official Ubuntu image from Docker Hub
-            reuseNode true // Reuse the same container for all stages
-        }
+        // docker {
+        //     image 'ubuntu:latest' // Use the official Ubuntu image from Docker Hub
+        //     reuseNode true // Reuse the same container for all stages
+        // }
+        any
     }
 
     stages {
