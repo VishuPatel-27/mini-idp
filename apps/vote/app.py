@@ -4,6 +4,7 @@
 # The app logs votes and handles both GET and POST requests.
 # Configuration options for the two voting choices are set via environment variables.
 # The application is designed to run in a containerized environment, such as Docker.
+
 from flask import Flask, render_template, request, make_response, g
 from redis import Redis
 import os
