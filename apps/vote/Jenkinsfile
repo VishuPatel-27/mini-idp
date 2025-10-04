@@ -12,7 +12,7 @@ pipeline {
             when{
                 allOf {
                     branch 'feature/implementation-of-application'
-                    changeset pattern: "vote/**", comparator: "ANT"
+                    changeset pattern: "apps/vote/**", comparator: "ANT"
                 }
             }
             steps {
