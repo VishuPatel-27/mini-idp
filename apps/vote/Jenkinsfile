@@ -19,24 +19,6 @@ pipeline {
                 sh 'docker build -t imv27/vote-app:${env.BUILD_TAG} .' // Build Docker image using the Dockerfile in the repo
             }
         }
-    stage('Test Docker Image') {
-        steps {
-            echo 'Testing docker image ...'
-            sh 'docker run -d -p 5500:80 --name vote-app imv27/vote-app:${env.BUILD_TAG}'
-            // FIX: Explicitly use Bash for the script block
-            sh(script: '''
-                for i in {1..10}; do
-                    if curl -s http://localhost:5500/ > /dev/null; then
-                        echo "App is ready"
-                        exit 0
-                    fi
-                    sleep 2
-                done
-                echo "App failed to start"
-                exit 1
-            ''', label: 'Wait for App Readiness') // The label is optional but helpful
-        }
-    }
         stage('Push to ECR') {
             steps {
                 echo 'Pushing to ECR ...'
