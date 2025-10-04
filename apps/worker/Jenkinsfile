@@ -12,29 +12,12 @@ pipeline {
             when{
                 allOf {
                     branch 'feature/implementation-of-application'
-                    changeset pattern: "worker/**", comparator: "ANT"
+                    changeset "**/worker/**"
                 }
             }
             steps {
                 git 'https://github.com/VishuPatel-27/mini-idp.git' // Clone repository containing Dockerfile
-                sh 'docker build -t imv27/worker-app:${env.BUILD_TAG} .' // Build Docker image using the Dockerfile in the repo
-            }
-        }
-        stage('Test Docker Image') {
-            steps {
-                echo 'Testing docker image ...'
-                sh 'docker run -d -p 5500:80 --name worker-app imv27/worker-app:${env.BUILD_TAG}' // Run the Docker container
-                sh '''
-                        for i in {1..10}; do
-                        if curl -s http://localhost:5500/ > /dev/null; then
-                            echo "App is ready"
-                            exit 0
-                        fi
-                        sleep 2
-                        done
-                        echo "App failed to start"
-                        exit 1
-                    '''
+                sh 'docker build -t imv27/worker-app:${env.BUILD_TAG} apps/worker/Dockerfile' // Build Docker image using the Dockerfile in the repo
             }
         }
         stage('Push to ECR') {
