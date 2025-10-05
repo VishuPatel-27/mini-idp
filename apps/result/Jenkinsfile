@@ -1,5 +1,15 @@
 pipeline {
-    agent {any}
+    agent {
+        docker {
+            image 'ubuntu:latest' // Use the official Ubuntu image from Docker Hub
+            args '-v /var/run/docker.sock:/var/run/docker.sock' // Mount Docker socket to enable Docker commands
+            reuseNode true // Reuse the same container for all stages
+        }
+    }
+
+    environment {
+        BUILD_TAG = "${env.BUILD_TAG}"
+    }   
 
     stages {
         stage('Build Docker Image') {
@@ -7,19 +17,41 @@ pipeline {
             when{
                 allOf {
                     branch 'feature/implementation-of-application'
-                    changeset "**/result/**"
+                    changeset pattern: "apps/result/**", comparator: "ANT"
                 }
             }
+            steps{
+                sh '''
+                docker build -t imv27/result-app:${BUILD_TAG} .
+                '''
+                }
+            }
+        }
+        stage('Test Docker Image') {
             steps {
-                git 'https://github.com/VishuPatel-27/mini-idp.git' // Clone repository containing Dockerfile
-                sh 'docker build -t imv27/result-app:${env.BUILD_TAG} apps/result/Dockerfile' // Build Docker image using the Dockerfile in the repo
+                echo 'Testing docker image ...'
+                sh ''' 
+                    docker run -d -p 5500:80 --name result-app imv27/result-app:${BUILD_TAG}
+                    ''' 
+                sh 
+                '''
+                    for i in {1..10}; do
+                    if curl -s http://localhost:5500/ > /dev/null; then
+                        echo "App is ready"
+                        exit 0
+                    fi
+                    sleep 2
+                    done
+                    echo "App failed to start"
+                    exit 1
+                '''
             }
         }
         stage('Push to ECR') {
             steps {
                 echo 'Pushing to ECR ...'
                 sh '''
-                    docker push imv27/result-app:${env.BUILD_TAG}
+                    docker push imv27/result-app:${BUILD_TAG}
                 '''
             }
         }        
